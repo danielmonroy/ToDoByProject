@@ -6,7 +6,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import type { Project } from '../types'
+import type { Project, TaskPriority } from '../types'
 import { TaskCard } from './TaskCard'
 
 export function getColumnSortableId(projectId: string): string {
@@ -20,6 +20,7 @@ type ProjectColumnProps = {
   onDelete: () => void
   onAddTask: (title: string) => void
   onUpdateTask: (taskId: string, title: string) => void
+  onSetTaskPriority: (taskId: string, priority: TaskPriority | null) => void
   onToggleTaskComplete: (taskId: string) => void
   onDeleteTask: (taskId: string) => void
 }
@@ -31,6 +32,7 @@ export function ProjectColumn({
   onDelete,
   onAddTask,
   onUpdateTask,
+  onSetTaskPriority,
   onToggleTaskComplete,
   onDeleteTask,
 }: ProjectColumnProps) {
@@ -38,6 +40,14 @@ export function ProjectColumn({
   const [nameDraft, setNameDraft] = useState(project.name)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const newTaskInputRef = useRef<HTMLTextAreaElement>(null)
+
+  const resizeNewTaskInput = () => {
+    const input = newTaskInputRef.current
+    if (!input) return
+    input.style.height = 'auto'
+    input.style.height = `${input.scrollHeight}px`
+  }
 
   const pendingTasks = project.tasks.filter((task) => !task.completed)
   const completedTasks = project.tasks.filter((task) => task.completed)
@@ -74,6 +84,10 @@ export function ProjectColumn({
     if (!isEditingName) setNameDraft(project.name)
   }, [project.name, isEditingName])
 
+  useEffect(() => {
+    resizeNewTaskInput()
+  }, [newTaskTitle])
+
   const saveName = () => {
     const trimmed = nameDraft.trim()
     if (!trimmed) {
@@ -95,6 +109,21 @@ export function ProjectColumn({
     if (!trimmed) return
     onAddTask(trimmed)
     setNewTaskTitle('')
+  }
+
+  const handleNewTaskChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    setNewTaskTitle(event.target.value)
+  }
+
+  const handleNewTaskKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      handleAddTask()
+    }
   }
 
   const handleDeleteProject = () => {
@@ -163,6 +192,7 @@ export function ProjectColumn({
               key={task.id}
               task={task}
               onUpdate={(title) => onUpdateTask(task.id, title)}
+              onSetPriority={(priority) => onSetTaskPriority(task.id, priority)}
               onToggleComplete={() => onToggleTaskComplete(task.id)}
               onDelete={() => onDeleteTask(task.id)}
             />
@@ -182,6 +212,7 @@ export function ProjectColumn({
                 task={task}
                 draggable={false}
                 onUpdate={(title) => onUpdateTask(task.id, title)}
+                onSetPriority={(priority) => onSetTaskPriority(task.id, priority)}
                 onToggleComplete={() => onToggleTaskComplete(task.id)}
                 onDelete={() => onDeleteTask(task.id)}
               />
@@ -191,15 +222,14 @@ export function ProjectColumn({
       </div>
 
       <footer className="project-column__footer">
-        <input
+        <textarea
+          ref={newTaskInputRef}
           className="project-column__add-input"
-          type="text"
           placeholder="Agregar tarea"
+          rows={1}
           value={newTaskTitle}
-          onChange={(event) => setNewTaskTitle(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') handleAddTask()
-          }}
+          onChange={handleNewTaskChange}
+          onKeyDown={handleNewTaskKeyDown}
         />
         <button
           type="button"

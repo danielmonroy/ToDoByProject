@@ -1,7 +1,10 @@
+export type TaskPriority = 'p1' | 'p2' | 'p3'
+
 export type Task = {
   id: string
   title: string
   completed: boolean
+  priority: TaskPriority | null
 }
 
 export type Project = {
