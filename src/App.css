@@ -252,6 +252,7 @@ input {
 
 .project-column__footer {
   display: flex;
+  align-items: flex-end;
   gap: 0.4rem;
   padding: 0.6rem 0.65rem;
   border-top: 1px solid #f3f4f6;
@@ -264,6 +265,12 @@ input {
   border-radius: 6px;
   padding: 0.35rem 0.5rem;
   font-size: 0.8125rem;
+  line-height: 1.4;
+  resize: none;
+  overflow-y: auto;
+  min-height: 2rem;
+  max-height: 7.5rem;
+  font-family: inherit;
 }
 
 .project-column__add-input:focus {
@@ -290,13 +297,30 @@ input {
 
 .task-card {
   display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  flex-direction: column;
+  gap: 0.35rem;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 0.35rem 0.4rem;
+  padding: 0.4rem 0.45rem;
   font-size: 0.8125rem;
+}
+
+.task-card__body {
+  min-width: 0;
+  width: 100%;
+}
+
+.task-card__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.task-card__toolbar-spacer {
+  flex: 1;
+  min-width: 0;
 }
 
 .task-card--dragging {
@@ -313,6 +337,37 @@ input {
 .task-card--completed {
   background: #f3f4f6;
   border-color: #e5e7eb;
+}
+
+.task-card__priority {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.task-card__priority--none {
+  background: transparent;
+  border: 1.5px solid #d1d5db;
+}
+
+.task-card__priority--p1 {
+  background: #ef4444;
+}
+
+.task-card__priority--p2 {
+  background: #eab308;
+}
+
+.task-card__priority--p3 {
+  background: #3b82f6;
+}
+
+.task-card__priority:hover {
+  transform: scale(1.15);
 }
 
 .task-card__checkbox {
@@ -354,7 +409,8 @@ input {
 
 .task-card__title,
 .task-card__input {
-  flex: 1;
+  display: block;
+  width: 100%;
   min-width: 0;
 }
 
@@ -363,9 +419,11 @@ input {
   background: transparent;
   text-align: left;
   cursor: pointer;
-  padding: 0.15rem 0.2rem;
+  padding: 0.1rem 0.15rem;
   border-radius: 4px;
   font-size: inherit;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .task-card__title:hover {
@@ -375,8 +433,9 @@ input {
 .task-card__input {
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  padding: 0.15rem 0.3rem;
+  padding: 0.2rem 0.35rem;
   font-size: inherit;
+  line-height: 1.4;
 }
 
 .task-card__delete {

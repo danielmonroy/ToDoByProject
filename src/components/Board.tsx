@@ -17,7 +17,7 @@ import {
   arrayMove,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import type { BoardState, Project, Task } from '../types'
+import type { BoardState, Project, Task, TaskPriority } from '../types'
 import { getColumnSortableId, ProjectColumn } from './ProjectColumn'
 
 type BoardProps = {
@@ -379,7 +379,7 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
               ...project,
               tasks: [
                 ...project.tasks,
-                { id: crypto.randomUUID(), title, completed: false },
+                { id: crypto.randomUUID(), title, completed: false, priority: null },
               ],
             }
           : project,
@@ -400,6 +400,26 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
               ...project,
               tasks: project.tasks.map((task) =>
                 task.id === taskId ? { ...task, title } : task,
+              ),
+            }
+          : project,
+      ),
+    }))
+  }
+
+  const handleSetTaskPriority = (
+    projectId: string,
+    taskId: string,
+    priority: TaskPriority | null,
+  ) => {
+    updateBoard((current) => ({
+      ...current,
+      projects: current.projects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              tasks: project.tasks.map((task) =>
+                task.id === taskId ? { ...task, priority } : task,
               ),
             }
           : project,
@@ -478,6 +498,9 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
               onAddTask={(title) => handleAddTask(project.id, title)}
               onUpdateTask={(taskId, title) =>
                 handleUpdateTask(project.id, taskId, title)
+              }
+              onSetTaskPriority={(taskId, priority) =>
+                handleSetTaskPriority(project.id, taskId, priority)
               }
               onToggleTaskComplete={(taskId) =>
                 handleToggleTaskComplete(project.id, taskId)

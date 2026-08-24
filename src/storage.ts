@@ -15,14 +15,14 @@ export function createSeedBoard(): BoardState {
         id: createId(),
         name: 'Proyecto A',
         tasks: [
-          { id: createId(), title: 'Definir alcance', completed: false },
-          { id: createId(), title: 'Revisar requisitos', completed: false },
+          { id: createId(), title: 'Definir alcance', completed: false, priority: null },
+          { id: createId(), title: 'Revisar requisitos', completed: false, priority: null },
         ],
       },
       {
         id: createId(),
         name: 'Proyecto B',
-        tasks: [{ id: createId(), title: 'Diseñar wireframes', completed: false }],
+        tasks: [{ id: createId(), title: 'Diseñar wireframes', completed: false, priority: null }],
       },
       {
         id: createId(),
@@ -48,7 +48,12 @@ function isBoardState(value: unknown): value is BoardState {
         (task) =>
           typeof task.id === 'string' &&
           typeof task.title === 'string' &&
-          (task.completed === undefined || typeof task.completed === 'boolean'),
+          (task.completed === undefined || typeof task.completed === 'boolean') &&
+          (task.priority === undefined ||
+            task.priority === null ||
+            task.priority === 'p1' ||
+            task.priority === 'p2' ||
+            task.priority === 'p3'),
       ),
   )
 }
@@ -61,6 +66,7 @@ function normalizeBoard(board: BoardState): BoardState {
       tasks: project.tasks.map((task) => ({
         ...task,
         completed: task.completed ?? false,
+        priority: task.priority ?? null,
       })),
     })),
   }
