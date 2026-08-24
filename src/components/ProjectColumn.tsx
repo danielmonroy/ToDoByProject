@@ -150,27 +150,38 @@ export function ProjectColumn({
           ⋮⋮
         </button>
 
-        {isEditingName ? (
-          <input
-            ref={nameInputRef}
-            className="project-column__name-input"
-            value={nameDraft}
-            onChange={(event) => setNameDraft(event.target.value)}
-            onBlur={saveName}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') saveName()
-              if (event.key === 'Escape') cancelNameEdit()
-            }}
-          />
-        ) : (
-          <button
-            type="button"
-            className="project-column__name"
-            onClick={() => setIsEditingName(true)}
+        <div className="project-column__heading">
+          {isEditingName ? (
+            <input
+              ref={nameInputRef}
+              className="project-column__name-input"
+              value={nameDraft}
+              onChange={(event) => setNameDraft(event.target.value)}
+              onBlur={saveName}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') saveName()
+                if (event.key === 'Escape') cancelNameEdit()
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              className="project-column__name"
+              onClick={() => setIsEditingName(true)}
+            >
+              {project.name}
+            </button>
+          )}
+
+          <span
+            className="project-column__count"
+            aria-label={`${project.tasks.length} ${
+              project.tasks.length === 1 ? 'tarea' : 'tareas'
+            }`}
           >
-            {project.name}
-          </button>
-        )}
+            {project.tasks.length}
+          </span>
+        </div>
 
         <button
           type="button"

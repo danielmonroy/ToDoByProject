@@ -5,6 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mapa mental de proyectos y tareas</title>
+    <script>
+      (() => {
+        try {
+          const saved = localStorage.getItem('kanban-theme')
+          const theme =
+            saved === 'dark' || saved === 'light'
+              ? saved
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+          document.documentElement.dataset.theme = theme
+        } catch {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

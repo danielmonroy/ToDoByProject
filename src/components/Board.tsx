@@ -526,7 +526,12 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
         {activeProject ? (
           <div className="project-column project-column--overlay">
             <header className="project-column__header">
-              <span className="project-column__name">{activeProject.name}</span>
+              <div className="project-column__heading">
+                <span className="project-column__name">{activeProject.name}</span>
+                <span className="project-column__count">
+                  {activeProject.tasks.length}
+                </span>
+              </div>
             </header>
           </div>
         ) : null}

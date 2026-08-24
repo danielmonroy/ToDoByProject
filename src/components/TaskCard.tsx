@@ -23,7 +23,7 @@ export function TaskCard({
 }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(task.title)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const {
     attributes,
@@ -44,12 +44,23 @@ export function TaskCard({
     opacity: isDragging ? 0.5 : 1,
   }
 
+  const resizeInput = () => {
+    const input = inputRef.current
+    if (!input) return
+    input.style.height = 'auto'
+    input.style.height = `${input.scrollHeight}px`
+  }
+
   useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus()
-      inputRef.current?.select()
-    }
+    if (!isEditing) return
+    resizeInput()
+    inputRef.current?.focus()
+    inputRef.current?.select()
   }, [isEditing])
+
+  useEffect(() => {
+    if (isEditing) resizeInput()
+  }, [draft, isEditing])
 
   useEffect(() => {
     if (!isEditing) setDraft(task.title)
@@ -82,14 +93,18 @@ export function TaskCard({
     >
       <div className="task-card__body">
         {isEditing ? (
-          <input
+          <textarea
             ref={inputRef}
             className="task-card__input"
+            rows={1}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onBlur={save}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') save()
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                save()
+              }
               if (event.key === 'Escape') cancel()
             }}
           />

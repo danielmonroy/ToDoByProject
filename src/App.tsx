@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Board } from './components/Board'
 import {
+  applyTheme,
   exportBoard,
   importBoardFile,
   loadBoard,
+  loadTheme,
   saveBoard,
+  saveTheme,
+  type Theme,
 } from './storage'
 import type { BoardState } from './types'
 import './App.css'
@@ -12,11 +16,17 @@ import './App.css'
 function App() {
   const [board, setBoard] = useState<BoardState>(() => loadBoard())
   const [showCompleted, setShowCompleted] = useState(false)
+  const [theme, setTheme] = useState<Theme>(() => loadTheme())
   const importInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     saveBoard(board)
   }, [board])
+
+  useEffect(() => {
+    applyTheme(theme)
+    saveTheme(theme)
+  }, [theme])
 
   const handleExport = () => {
     exportBoard(board)
@@ -53,6 +63,28 @@ function App() {
         <h1 className="app__title">Mapa mental de proyectos y tareas</h1>
 
         <div className="app__actions">
+          <button
+            type="button"
+            className={`button button--secondary ${theme === 'dark' ? 'button--active' : ''}`}
+            onClick={() =>
+              setTheme((value) => (value === 'dark' ? 'light' : 'dark'))
+            }
+            aria-pressed={theme === 'dark'}
+          >
+            <svg
+              className="button__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z" />
+            </svg>
+            Oscuro
+          </button>
           <button
             type="button"
             className={`button button--secondary ${showCompleted ? 'button--active' : ''}`}

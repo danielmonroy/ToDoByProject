@@ -1,7 +1,10 @@
 import type { BoardState } from './types'
 
 const STORAGE_KEY = 'kanban-board'
+const THEME_KEY = 'kanban-theme'
 const EXPORT_FILENAME = 'kanban-board.json'
+
+export type Theme = 'light' | 'dark'
 
 function createId(): string {
   return crypto.randomUUID()
@@ -133,6 +136,33 @@ export function importBoardFile(file: File): Promise<BoardState> {
     reader.onerror = () => reject(new Error('Error al leer el archivo.'))
     reader.readAsText(file)
   })
+}
+
+export function loadTheme(): Theme {
+  try {
+    const saved = localStorage.getItem(THEME_KEY)
+    if (saved === 'light' || saved === 'dark') return saved
+  } catch {
+    // Ignore storage errors and fall back to the system preference.
+  }
+
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark'
+  }
+
+  return 'light'
+}
+
+export function saveTheme(theme: Theme): void {
+  try {
+    localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    // Theme preference is optional; the UI still works without persistence.
+  }
+}
+
+export function applyTheme(theme: Theme): void {
+  document.documentElement.dataset.theme = theme
 }
 
 export { createId }
