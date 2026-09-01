@@ -1,7 +1,11 @@
 import type { BoardState } from './types'
 
 const STORAGE_KEY = 'kanban-board'
+const THEME_KEY = 'kanban-theme'
+const AGENDA_VISIBLE_KEY = 'kanban-agenda-visible'
 const EXPORT_FILENAME = 'kanban-board.json'
+
+export type Theme = 'light' | 'dark'
 
 function createId(): string {
   return crypto.randomUUID()
@@ -10,6 +14,7 @@ function createId(): string {
 export function createSeedBoard(): BoardState {
   return {
     version: 1,
+    agendaTaskIds: [],
     projects: [
       {
         id: createId(),
@@ -33,11 +38,25 @@ export function createSeedBoard(): BoardState {
   }
 }
 
-function isBoardState(value: unknown): value is BoardState {
+type PersistedBoard = {
+  version: 1
+  projects: BoardState['projects']
+  agendaTaskIds?: string[]
+}
+
+function isBoardState(value: unknown): value is PersistedBoard {
   if (!value || typeof value !== 'object') return false
 
-  const board = value as BoardState
+  const board = value as PersistedBoard
   if (board.version !== 1 || !Array.isArray(board.projects)) return false
+
+  if (
+    board.agendaTaskIds !== undefined &&
+    (!Array.isArray(board.agendaTaskIds) ||
+      !board.agendaTaskIds.every((id) => typeof id === 'string'))
+  ) {
+    return false
+  }
 
   return board.projects.every(
     (project) =>
@@ -58,17 +77,49 @@ function isBoardState(value: unknown): value is BoardState {
   )
 }
 
-function normalizeBoard(board: BoardState): BoardState {
-  return {
-    ...board,
-    projects: board.projects.map((project) => ({
-      ...project,
-      tasks: project.tasks.map((task) => ({
-        ...task,
-        completed: task.completed ?? false,
-        priority: task.priority ?? null,
-      })),
+function collectPendingTaskIds(projects: BoardState['projects']): Set<string> {
+  const ids = new Set<string>()
+  for (const project of projects) {
+    for (const task of project.tasks) {
+      if (!task.completed) ids.add(task.id)
+    }
+  }
+  return ids
+}
+
+function normalizeAgendaTaskIds(
+  projects: BoardState['projects'],
+  agendaTaskIds: string[] | undefined,
+): string[] {
+  if (!agendaTaskIds) return []
+
+  const pending = collectPendingTaskIds(projects)
+  const seen = new Set<string>()
+  const normalized: string[] = []
+
+  for (const id of agendaTaskIds) {
+    if (!pending.has(id) || seen.has(id)) continue
+    seen.add(id)
+    normalized.push(id)
+  }
+
+  return normalized
+}
+
+function normalizeBoard(board: PersistedBoard): BoardState {
+  const projects = board.projects.map((project) => ({
+    ...project,
+    tasks: project.tasks.map((task) => ({
+      ...task,
+      completed: task.completed ?? false,
+      priority: task.priority ?? null,
     })),
+  }))
+
+  return {
+    version: 1,
+    projects,
+    agendaTaskIds: normalizeAgendaTaskIds(projects, board.agendaTaskIds),
   }
 }
 
@@ -133,6 +184,49 @@ export function importBoardFile(file: File): Promise<BoardState> {
     reader.onerror = () => reject(new Error('Error al leer el archivo.'))
     reader.readAsText(file)
   })
+}
+
+export function loadTheme(): Theme {
+  try {
+    const saved = localStorage.getItem(THEME_KEY)
+    if (saved === 'light' || saved === 'dark') return saved
+  } catch {
+    // Ignore storage errors and fall back to the system preference.
+  }
+
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark'
+  }
+
+  return 'light'
+}
+
+export function saveTheme(theme: Theme): void {
+  try {
+    localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    // Theme preference is optional; the UI still works without persistence.
+  }
+}
+
+export function applyTheme(theme: Theme): void {
+  document.documentElement.dataset.theme = theme
+}
+
+export function loadAgendaVisible(): boolean {
+  try {
+    return localStorage.getItem(AGENDA_VISIBLE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function saveAgendaVisible(visible: boolean): void {
+  try {
+    localStorage.setItem(AGENDA_VISIBLE_KEY, String(visible))
+  } catch {
+    // Visibility is optional; the board still works without it.
+  }
 }
 
 export { createId }

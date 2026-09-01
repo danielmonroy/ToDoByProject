@@ -18,20 +18,31 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import type { BoardState, Project, Task, TaskPriority } from '../types'
+import {
+  AGENDA_DROPPABLE_ID,
+  countPendingTasks,
+  isAgendaTarget,
+  parseAgendaSortableId,
+} from '../agenda'
+import { AgendaColumn, type AgendaItem } from './AgendaColumn'
 import { getColumnSortableId, ProjectColumn } from './ProjectColumn'
 
 type BoardProps = {
   board: BoardState
   showCompleted: boolean
+  showAgenda: boolean
   onChange: (board: BoardState) => void
+  onShowAgenda: () => void
+  onHideAgenda: () => void
 }
 
-type DragType = 'column' | 'task'
+type DragType = 'column' | 'task' | 'agenda-task'
 
 type DeletedTaskUndo = {
   projectId: string
   task: Task
   index: number
+  agendaIndex: number | null
 }
 
 const MAX_UNDO_STACK = 20
@@ -108,6 +119,58 @@ function reorderProjects(
   }
 }
 
+function getAgendaTaskIds(board: BoardState): string[] {
+  return board.agendaTaskIds ?? []
+}
+
+function getAgendaItems(board: BoardState): AgendaItem[] {
+  return getAgendaTaskIds(board).flatMap((taskId) => {
+    const project = findProjectByTaskId(board, taskId)
+    const task = project?.tasks.find((item) => item.id === taskId)
+    if (!project || !task || task.completed) return []
+    return [{ projectId: project.id, projectName: project.name, task }]
+  })
+}
+
+function addTaskToAgenda(
+  board: BoardState,
+  taskId: string,
+  overTaskId?: string,
+): BoardState {
+  const project = findProjectByTaskId(board, taskId)
+  const task = project?.tasks.find((item) => item.id === taskId)
+  if (!project || !task || task.completed) return board
+
+  const ids = getAgendaTaskIds(board).filter((id) => id !== taskId)
+  let insertIndex = ids.length
+
+  if (overTaskId && overTaskId !== taskId) {
+    const overIndex = ids.findIndex((id) => id === overTaskId)
+    if (overIndex !== -1) insertIndex = overIndex
+  }
+
+  ids.splice(insertIndex, 0, taskId)
+  return { ...board, agendaTaskIds: ids }
+}
+
+function removeTaskFromAgenda(board: BoardState, taskId: string): BoardState {
+  if (!getAgendaTaskIds(board).includes(taskId)) return board
+  return {
+    ...board,
+    agendaTaskIds: getAgendaTaskIds(board).filter((id) => id !== taskId),
+  }
+}
+
+function pruneAgendaTaskIds(
+  board: BoardState,
+  predicate: (taskId: string) => boolean,
+): BoardState {
+  const currentIds = getAgendaTaskIds(board)
+  const agendaTaskIds = currentIds.filter(predicate)
+  if (agendaTaskIds.length === currentIds.length) return board
+  return { ...board, agendaTaskIds }
+}
+
 function moveTask(
   board: BoardState,
   taskId: string,
@@ -164,10 +227,34 @@ const collisionDetection: CollisionDetection = (args) => {
     if (columnCollisions.length > 0) return columnCollisions
   }
 
+  if (dragType === 'task' || dragType === 'agenda-task') {
+    const pointerCollisions = pointerWithin(args)
+    const agendaItemCollisions = pointerCollisions.filter((collision) =>
+      String(collision.id).startsWith('agenda:'),
+    )
+    if (agendaItemCollisions.length > 0) return agendaItemCollisions
+
+    const agendaCollisions = pointerCollisions.filter(
+      (collision) => String(collision.id) === AGENDA_DROPPABLE_ID,
+    )
+    if (agendaCollisions.length > 0) return agendaCollisions
+
+    return closestCorners(args).filter(
+      (collision) => !isAgendaTarget(String(collision.id)),
+    )
+  }
+
   return closestCorners(args)
 }
 
-export function Board({ board, showCompleted, onChange }: BoardProps) {
+export function Board({
+  board,
+  showCompleted,
+  showAgenda,
+  onChange,
+  onShowAgenda,
+  onHideAgenda,
+}: BoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeProject, setActiveProject] = useState<Project | null>(null)
   const boardRef = useRef(board)
@@ -208,8 +295,22 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
       const insertAt = Math.min(entry.index, tasks.length)
       tasks.splice(insertAt, 0, entry.task)
 
+      let agendaTaskIds = getAgendaTaskIds(current)
+      if (
+        entry.agendaIndex !== null &&
+        !agendaTaskIds.includes(entry.task.id)
+      ) {
+        agendaTaskIds = [...agendaTaskIds]
+        agendaTaskIds.splice(
+          Math.min(entry.agendaIndex, agendaTaskIds.length),
+          0,
+          entry.task.id,
+        )
+      }
+
       return {
         ...current,
+        agendaTaskIds,
         projects: current.projects.map((item) =>
           item.id === entry.projectId ? { ...item, tasks } : item,
         ),
@@ -247,7 +348,11 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
       return
     }
 
-    const task = getTask(board, String(event.active.id))
+    const taskId =
+      dragType === 'agenda-task'
+        ? parseAgendaSortableId(String(event.active.id))
+        : String(event.active.id)
+    const task = taskId ? getTask(board, taskId) : undefined
     setActiveTask(task ?? null)
     setActiveProject(null)
   }
@@ -272,6 +377,28 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
       )
       return
     }
+
+    if (dragType === 'agenda-task') {
+      const activeTaskId = parseAgendaSortableId(activeId)
+      const overTaskId = parseAgendaSortableId(overId)
+      if (!activeTaskId || !overTaskId || activeTaskId === overTaskId) return
+
+      updateBoard((current) => {
+        const agendaTaskIds = getAgendaTaskIds(current)
+        const oldIndex = agendaTaskIds.indexOf(activeTaskId)
+        const newIndex = agendaTaskIds.indexOf(overTaskId)
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+          return current
+        }
+
+        return {
+          ...current,
+          agendaTaskIds: arrayMove(agendaTaskIds, oldIndex, newIndex),
+        }
+      })
+      return
+    }
+    if (isAgendaTarget(overId)) return
 
     const sourceProject = findProjectByTaskId(boardRef.current, activeId)
     const overProjectId = resolveOverProjectId(boardRef.current, overId)
@@ -307,6 +434,17 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
       updateBoard((current) =>
         reorderProjects(current, activeProjectId, overProjectId),
       )
+      return
+    }
+
+    if (dragType === 'agenda-task') {
+      return
+    }
+
+    if (isAgendaTarget(overId)) {
+      const overTaskId = parseAgendaSortableId(overId) ?? undefined
+      updateBoard((current) => addTaskToAgenda(current, activeId, overTaskId))
+      onShowAgenda()
       return
     }
 
@@ -364,10 +502,17 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
   }
 
   const handleDeleteProject = (projectId: string) => {
-    updateBoard((current) => ({
-      ...current,
-      projects: current.projects.filter((project) => project.id !== projectId),
-    }))
+    updateBoard((current) => {
+      const project = current.projects.find((item) => item.id === projectId)
+      const removedTaskIds = new Set(project?.tasks.map((task) => task.id) ?? [])
+      return pruneAgendaTaskIds(
+        {
+          ...current,
+          projects: current.projects.filter((item) => item.id !== projectId),
+        },
+        (taskId) => !removedTaskIds.has(taskId),
+      )
+    })
   }
 
   const handleAddTask = (projectId: string, title: string) => {
@@ -428,21 +573,29 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
   }
 
   const handleToggleTaskComplete = (projectId: string, taskId: string) => {
-    updateBoard((current) => ({
-      ...current,
-      projects: current.projects.map((project) =>
-        project.id === projectId
-          ? {
-              ...project,
-              tasks: project.tasks.map((task) =>
-                task.id === taskId
-                  ? { ...task, completed: !task.completed }
-                  : task,
-              ),
-            }
-          : project,
-      ),
-    }))
+    updateBoard((current) => {
+      const project = current.projects.find((item) => item.id === projectId)
+      const task = project?.tasks.find((item) => item.id === taskId)
+      const willComplete = !task?.completed
+
+      const next: BoardState = {
+        ...current,
+        projects: current.projects.map((item) =>
+          item.id === projectId
+            ? {
+                ...item,
+                tasks: item.tasks.map((entry) =>
+                  entry.id === taskId
+                    ? { ...entry, completed: !entry.completed }
+                    : entry,
+                ),
+              }
+            : item,
+        ),
+      }
+
+      return willComplete ? removeTaskFromAgenda(next, taskId) : next
+    })
   }
 
   const handleDeleteTask = (projectId: string, taskId: string) => {
@@ -450,30 +603,64 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
     const project = current.projects.find((item) => item.id === projectId)
     const index = project?.tasks.findIndex((task) => task.id === taskId) ?? -1
     const task = index === -1 ? undefined : project?.tasks[index]
+    const agendaIndex = getAgendaTaskIds(current).indexOf(taskId)
 
     if (project && task && index !== -1) {
-      undoStackRef.current.push({ projectId, task, index })
+      undoStackRef.current.push({
+        projectId,
+        task,
+        index,
+        agendaIndex: agendaIndex === -1 ? null : agendaIndex,
+      })
       if (undoStackRef.current.length > MAX_UNDO_STACK) {
         undoStackRef.current.shift()
       }
     }
 
-    updateBoard((board) => ({
-      ...board,
-      projects: board.projects.map((item) =>
-        item.id === projectId
-          ? {
-              ...item,
-              tasks: item.tasks.filter((entry) => entry.id !== taskId),
-            }
-          : item,
+    updateBoard((board) =>
+      pruneAgendaTaskIds(
+        {
+          ...board,
+          projects: board.projects.map((item) =>
+            item.id === projectId
+              ? {
+                  ...item,
+                  tasks: item.tasks.filter((entry) => entry.id !== taskId),
+                }
+              : item,
+          ),
+        },
+        (id) => id !== taskId,
       ),
-    }))
+    )
+  }
+
+  const handleToggleAgenda = (taskId: string) => {
+    const isAdding = !getAgendaTaskIds(boardRef.current).includes(taskId)
+    updateBoard((current) => {
+      if (getAgendaTaskIds(current).includes(taskId)) {
+        return removeTaskFromAgenda(current, taskId)
+      }
+      return addTaskToAgenda(current, taskId)
+    })
+    if (isAdding) onShowAgenda()
+  }
+
+  const handleRemoveFromAgenda = (taskId: string) => {
+    updateBoard((current) => removeTaskFromAgenda(current, taskId))
+  }
+
+  const handleClearAgenda = () => {
+    updateBoard((current) => {
+      if (getAgendaTaskIds(current).length === 0) return current
+      return { ...current, agendaTaskIds: [] }
+    })
   }
 
   const columnIds = board.projects.map((project) =>
     getColumnSortableId(project.id),
   )
+  const agendaItems = getAgendaItems(board)
 
   return (
     <DndContext
@@ -484,6 +671,18 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
       onDragEnd={handleDragEnd}
     >
       <div className="board">
+        {showAgenda ? (
+          <AgendaColumn
+            items={agendaItems}
+            onClose={onHideAgenda}
+            onUpdateTask={handleUpdateTask}
+            onSetTaskPriority={handleSetTaskPriority}
+            onToggleTaskComplete={handleToggleTaskComplete}
+            onRemoveTask={handleRemoveFromAgenda}
+            onClear={handleClearAgenda}
+          />
+        ) : null}
+
         <SortableContext
           items={columnIds}
           strategy={horizontalListSortingStrategy}
@@ -493,6 +692,7 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
               key={project.id}
               project={project}
               showCompleted={showCompleted}
+              agendaTaskIds={getAgendaTaskIds(board)}
               onRename={(name) => handleRenameProject(project.id, name)}
               onDelete={() => handleDeleteProject(project.id)}
               onAddTask={(title) => handleAddTask(project.id, title)}
@@ -506,6 +706,7 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
                 handleToggleTaskComplete(project.id, taskId)
               }
               onDeleteTask={(taskId) => handleDeleteTask(project.id, taskId)}
+              onToggleAgenda={(taskId) => handleToggleAgenda(taskId)}
             />
           ))}
         </SortableContext>
@@ -526,7 +727,12 @@ export function Board({ board, showCompleted, onChange }: BoardProps) {
         {activeProject ? (
           <div className="project-column project-column--overlay">
             <header className="project-column__header">
-              <span className="project-column__name">{activeProject.name}</span>
+              <div className="project-column__heading">
+                <span className="project-column__name">{activeProject.name}</span>
+                <span className="project-column__count">
+                  {countPendingTasks(activeProject.tasks)}
+                </span>
+              </div>
             </header>
           </div>
         ) : null}
