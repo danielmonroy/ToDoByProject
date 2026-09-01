@@ -16,6 +16,7 @@ export function getColumnSortableId(projectId: string): string {
 type ProjectColumnProps = {
   project: Project
   showCompleted: boolean
+  agendaTaskIds: string[]
   onRename: (name: string) => void
   onDelete: () => void
   onAddTask: (title: string) => void
@@ -23,11 +24,13 @@ type ProjectColumnProps = {
   onSetTaskPriority: (taskId: string, priority: TaskPriority | null) => void
   onToggleTaskComplete: (taskId: string) => void
   onDeleteTask: (taskId: string) => void
+  onToggleAgenda: (taskId: string) => void
 }
 
 export function ProjectColumn({
   project,
   showCompleted,
+  agendaTaskIds,
   onRename,
   onDelete,
   onAddTask,
@@ -35,6 +38,7 @@ export function ProjectColumn({
   onSetTaskPriority,
   onToggleTaskComplete,
   onDeleteTask,
+  onToggleAgenda,
 }: ProjectColumnProps) {
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState(project.name)
@@ -175,11 +179,11 @@ export function ProjectColumn({
 
           <span
             className="project-column__count"
-            aria-label={`${project.tasks.length} ${
-              project.tasks.length === 1 ? 'tarea' : 'tareas'
+            aria-label={`${pendingTasks.length} ${
+              pendingTasks.length === 1 ? 'tarea pendiente' : 'tareas pendientes'
             }`}
           >
-            {project.tasks.length}
+            {pendingTasks.length}
           </span>
         </div>
 
@@ -202,10 +206,12 @@ export function ProjectColumn({
             <TaskCard
               key={task.id}
               task={task}
+              inAgenda={agendaTaskIds.includes(task.id)}
               onUpdate={(title) => onUpdateTask(task.id, title)}
               onSetPriority={(priority) => onSetTaskPriority(task.id, priority)}
               onToggleComplete={() => onToggleTaskComplete(task.id)}
               onDelete={() => onDeleteTask(task.id)}
+              onToggleAgenda={() => onToggleAgenda(task.id)}
             />
           ))}
         </SortableContext>
@@ -222,10 +228,12 @@ export function ProjectColumn({
                 key={task.id}
                 task={task}
                 draggable={false}
+                inAgenda={agendaTaskIds.includes(task.id)}
                 onUpdate={(title) => onUpdateTask(task.id, title)}
                 onSetPriority={(priority) => onSetTaskPriority(task.id, priority)}
                 onToggleComplete={() => onToggleTaskComplete(task.id)}
                 onDelete={() => onDeleteTask(task.id)}
+                onToggleAgenda={() => onToggleAgenda(task.id)}
               />
             ))}
           </div>

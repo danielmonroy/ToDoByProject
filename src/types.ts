@@ -16,4 +16,5 @@ export type Project = {
 export type BoardState = {
   version: 1
   projects: Project[]
+  agendaTaskIds: string[]
 }

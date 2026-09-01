@@ -7,19 +7,33 @@ import { getNextPriority, getPriorityLabel } from '../taskPriority'
 type TaskCardProps = {
   task: Task
   draggable?: boolean
+  sortableId?: string
+  dragType?: 'task' | 'agenda-task'
+  projectName?: string
+  inAgenda?: boolean
+  allowDragWhenCompleted?: boolean
+  deleteLabel?: string
   onUpdate: (title: string) => void
   onSetPriority: (priority: TaskPriority | null) => void
   onToggleComplete: () => void
   onDelete: () => void
+  onToggleAgenda?: () => void
 }
 
 export function TaskCard({
   task,
   draggable = true,
+  sortableId,
+  dragType = 'task',
+  projectName,
+  inAgenda = false,
+  allowDragWhenCompleted = false,
+  deleteLabel = 'Eliminar tarea',
   onUpdate,
   onSetPriority,
   onToggleComplete,
   onDelete,
+  onToggleAgenda,
 }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(task.title)
@@ -33,9 +47,9 @@ export function TaskCard({
     transition,
     isDragging,
   } = useSortable({
-    id: task.id,
-    data: { type: 'task' },
-    disabled: !draggable || task.completed,
+    id: sortableId ?? task.id,
+    data: { type: dragType, taskId: task.id },
+    disabled: !draggable || (task.completed && !allowDragWhenCompleted),
   })
 
   const style = {
@@ -85,13 +99,18 @@ export function TaskCard({
     onSetPriority(getNextPriority(task.priority))
   }
 
+  const canDrag = draggable && (!task.completed || allowDragWhenCompleted)
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`task-card ${isDragging ? 'task-card--dragging' : ''} ${task.completed ? 'task-card--completed' : ''}`}
+      className={`task-card ${isDragging ? 'task-card--dragging' : ''} ${task.completed ? 'task-card--completed' : ''} ${inAgenda ? 'task-card--in-agenda' : ''}`}
     >
       <div className="task-card__body">
+        {projectName ? (
+          <p className="task-card__project">{projectName}</p>
+        ) : null}
         {isEditing ? (
           <textarea
             ref={inputRef}
@@ -120,7 +139,7 @@ export function TaskCard({
       </div>
 
       <div className="task-card__toolbar">
-        {draggable && !task.completed ? (
+        {canDrag ? (
           <button
             type="button"
             className="task-card__drag-handle"
@@ -154,12 +173,44 @@ export function TaskCard({
           title={getPriorityLabel(task.priority)}
         />
 
+        {onToggleAgenda ? (
+          <button
+            type="button"
+            className={`task-card__agenda ${inAgenda ? 'task-card__agenda--active' : ''}`}
+            onClick={onToggleAgenda}
+            aria-pressed={inAgenda}
+            aria-label={
+              inAgenda
+                ? 'Quitar del orden del día'
+                : 'Agregar al orden del día'
+            }
+            title={
+              inAgenda
+                ? 'Quitar del orden del día'
+                : 'Agregar al orden del día'
+            }
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+          </button>
+        ) : null}
+
         <span className="task-card__toolbar-spacer" />
 
         <button
           type="button"
           className="task-card__delete"
-          aria-label="Eliminar tarea"
+          aria-label={deleteLabel}
           onClick={onDelete}
         >
           ×
