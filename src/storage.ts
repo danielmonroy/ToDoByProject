@@ -1,169 +1,46 @@
+import { boardFingerprint, parseBoard } from '../shared/board'
 import type { BoardState } from './types'
 
 const STORAGE_KEY = 'kanban-board'
 const THEME_KEY = 'kanban-theme'
 const AGENDA_VISIBLE_KEY = 'kanban-agenda-visible'
+const MIGRATE_DISMISS_KEY = 'kanban-local-migrate-dismissed'
 const EXPORT_FILENAME = 'kanban-board.json'
 
 export type Theme = 'light' | 'dark'
 
-function createId(): string {
-  return crypto.randomUUID()
-}
-
-export function createSeedBoard(): BoardState {
-  return {
-    version: 1,
-    agendaTaskIds: [],
-    projects: [
-      {
-        id: createId(),
-        name: 'Proyecto A',
-        tasks: [
-          { id: createId(), title: 'Definir alcance', completed: false, priority: null, effort: null, timeOfDay: null },
-          { id: createId(), title: 'Revisar requisitos', completed: false, priority: null, effort: null, timeOfDay: null },
-        ],
-      },
-      {
-        id: createId(),
-        name: 'Proyecto B',
-        tasks: [{ id: createId(), title: 'Diseñar wireframes', completed: false, priority: null, effort: null, timeOfDay: null }],
-      },
-      {
-        id: createId(),
-        name: 'Proyecto C',
-        tasks: [],
-      },
-    ],
-  }
-}
-
-type PersistedBoard = {
-  version: 1
-  projects: BoardState['projects']
-  agendaTaskIds?: string[]
-}
-
-function isBoardState(value: unknown): value is PersistedBoard {
-  if (!value || typeof value !== 'object') return false
-
-  const board = value as PersistedBoard
-  if (board.version !== 1 || !Array.isArray(board.projects)) return false
-
-  if (
-    board.agendaTaskIds !== undefined &&
-    (!Array.isArray(board.agendaTaskIds) ||
-      !board.agendaTaskIds.every((id) => typeof id === 'string'))
-  ) {
-    return false
-  }
-
-  return board.projects.every(
-    (project) =>
-      typeof project.id === 'string' &&
-      typeof project.name === 'string' &&
-      Array.isArray(project.tasks) &&
-      project.tasks.every(
-        (task) =>
-          typeof task.id === 'string' &&
-          typeof task.title === 'string' &&
-          (task.completed === undefined || typeof task.completed === 'boolean') &&
-          (task.priority === undefined ||
-            task.priority === null ||
-            task.priority === 'p1' ||
-            task.priority === 'p2' ||
-            task.priority === 'p3') &&
-          (task.effort === undefined ||
-            task.effort === null ||
-            task.effort === 'm5' ||
-            task.effort === 'm30' ||
-            task.effort === 'h2' ||
-            task.effort === 'h4' ||
-            task.effort === 'h8') &&
-          (task.timeOfDay === undefined ||
-            task.timeOfDay === null ||
-            task.timeOfDay === 'early_morning' ||
-            task.timeOfDay === 'morning' ||
-            task.timeOfDay === 'afternoon' ||
-            task.timeOfDay === 'night'),
-      ),
-  )
-}
-
-function collectPendingTaskIds(projects: BoardState['projects']): Set<string> {
-  const ids = new Set<string>()
-  for (const project of projects) {
-    for (const task of project.tasks) {
-      if (!task.completed) ids.add(task.id)
-    }
-  }
-  return ids
-}
-
-function normalizeAgendaTaskIds(
-  projects: BoardState['projects'],
-  agendaTaskIds: string[] | undefined,
-): string[] {
-  if (!agendaTaskIds) return []
-
-  const pending = collectPendingTaskIds(projects)
-  const seen = new Set<string>()
-  const normalized: string[] = []
-
-  for (const id of agendaTaskIds) {
-    if (!pending.has(id) || seen.has(id)) continue
-    seen.add(id)
-    normalized.push(id)
-  }
-
-  return normalized
-}
-
-function normalizeBoard(board: PersistedBoard): BoardState {
-  const projects = board.projects.map((project) => ({
-    ...project,
-    tasks: project.tasks.map((task) => ({
-      ...task,
-      completed: task.completed ?? false,
-      priority: task.priority ?? null,
-      effort: task.effort ?? null,
-      timeOfDay: task.timeOfDay ?? null,
-    })),
-  }))
-
-  return {
-    version: 1,
-    projects,
-    agendaTaskIds: normalizeAgendaTaskIds(projects, board.agendaTaskIds),
-  }
-}
-
-export function loadBoard(): BoardState {
+export function loadLocalBoard(): BoardState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return createSeedBoard()
-
-    const parsed: unknown = JSON.parse(raw)
-    if (!isBoardState(parsed)) return createSeedBoard()
-
-    if (parsed.projects.length === 0) return createSeedBoard()
-
-    return normalizeBoard(parsed)
+    if (!raw) return null
+    return parseBoard(JSON.parse(raw))
   } catch {
-    return createSeedBoard()
+    return null
   }
 }
 
-export function saveBoard(board: BoardState): void {
+export function clearLocalBoard(): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(board))
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-      alert(
-        'No hay espacio suficiente en localStorage. Exporta tus datos y limpia el almacenamiento del navegador.',
-      )
-    }
-    throw error
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(MIGRATE_DISMISS_KEY)
+  } catch {
+    // The server copy remains the source of truth.
+  }
+}
+
+export function isLocalMigrationDismissed(board: BoardState): boolean {
+  try {
+    return localStorage.getItem(MIGRATE_DISMISS_KEY) === boardFingerprint(board)
+  } catch {
+    return false
+  }
+}
+
+export function dismissLocalMigration(board: BoardState): void {
+  try {
+    localStorage.setItem(MIGRATE_DISMISS_KEY, boardFingerprint(board))
+  } catch {
+    // Hiding the prompt is optional.
   }
 }
 
@@ -186,11 +63,12 @@ export function importBoardFile(file: File): Promise<BoardState> {
     reader.onload = () => {
       try {
         const parsed: unknown = JSON.parse(String(reader.result))
-        if (!isBoardState(parsed)) {
+        const board = parseBoard(parsed)
+        if (!board) {
           reject(new Error('El archivo no tiene un formato válido.'))
           return
         }
-        resolve(normalizeBoard(parsed))
+        resolve(board)
       } catch {
         reject(new Error('No se pudo leer el archivo JSON.'))
       }
@@ -243,5 +121,3 @@ export function saveAgendaVisible(visible: boolean): void {
     // Visibility is optional; the board still works without it.
   }
 }
-
-export { createId }
