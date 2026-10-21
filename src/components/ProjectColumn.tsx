@@ -6,7 +6,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import type { Project, TaskPriority } from '../types'
+import type { Project, TaskEffort, TaskPriority, TaskTimeOfDay } from '../types'
 import { TaskCard } from './TaskCard'
 
 export function getColumnSortableId(projectId: string): string {
@@ -22,6 +22,8 @@ type ProjectColumnProps = {
   onAddTask: (title: string) => void
   onUpdateTask: (taskId: string, title: string) => void
   onSetTaskPriority: (taskId: string, priority: TaskPriority | null) => void
+  onSetTaskEffort: (taskId: string, effort: TaskEffort | null) => void
+  onSetTaskTimeOfDay: (taskId: string, timeOfDay: TaskTimeOfDay | null) => void
   onToggleTaskComplete: (taskId: string) => void
   onDeleteTask: (taskId: string) => void
   onToggleAgenda: (taskId: string) => void
@@ -36,6 +38,8 @@ export function ProjectColumn({
   onAddTask,
   onUpdateTask,
   onSetTaskPriority,
+  onSetTaskEffort,
+  onSetTaskTimeOfDay,
   onToggleTaskComplete,
   onDeleteTask,
   onToggleAgenda,
@@ -209,6 +213,8 @@ export function ProjectColumn({
               inAgenda={agendaTaskIds.includes(task.id)}
               onUpdate={(title) => onUpdateTask(task.id, title)}
               onSetPriority={(priority) => onSetTaskPriority(task.id, priority)}
+              onSetEffort={(effort) => onSetTaskEffort(task.id, effort)}
+              onSetTimeOfDay={(timeOfDay) => onSetTaskTimeOfDay(task.id, timeOfDay)}
               onToggleComplete={() => onToggleTaskComplete(task.id)}
               onDelete={() => onDeleteTask(task.id)}
               onToggleAgenda={() => onToggleAgenda(task.id)}
@@ -231,6 +237,8 @@ export function ProjectColumn({
                 inAgenda={agendaTaskIds.includes(task.id)}
                 onUpdate={(title) => onUpdateTask(task.id, title)}
                 onSetPriority={(priority) => onSetTaskPriority(task.id, priority)}
+                onSetEffort={(effort) => onSetTaskEffort(task.id, effort)}
+                onSetTimeOfDay={(timeOfDay) => onSetTaskTimeOfDay(task.id, timeOfDay)}
                 onToggleComplete={() => onToggleTaskComplete(task.id)}
                 onDelete={() => onDeleteTask(task.id)}
                 onToggleAgenda={() => onToggleAgenda(task.id)}

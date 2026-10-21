@@ -20,14 +20,14 @@ export function createSeedBoard(): BoardState {
         id: createId(),
         name: 'Proyecto A',
         tasks: [
-          { id: createId(), title: 'Definir alcance', completed: false, priority: null },
-          { id: createId(), title: 'Revisar requisitos', completed: false, priority: null },
+          { id: createId(), title: 'Definir alcance', completed: false, priority: null, effort: null, timeOfDay: null },
+          { id: createId(), title: 'Revisar requisitos', completed: false, priority: null, effort: null, timeOfDay: null },
         ],
       },
       {
         id: createId(),
         name: 'Proyecto B',
-        tasks: [{ id: createId(), title: 'Diseñar wireframes', completed: false, priority: null }],
+        tasks: [{ id: createId(), title: 'Diseñar wireframes', completed: false, priority: null, effort: null, timeOfDay: null }],
       },
       {
         id: createId(),
@@ -72,7 +72,20 @@ function isBoardState(value: unknown): value is PersistedBoard {
             task.priority === null ||
             task.priority === 'p1' ||
             task.priority === 'p2' ||
-            task.priority === 'p3'),
+            task.priority === 'p3') &&
+          (task.effort === undefined ||
+            task.effort === null ||
+            task.effort === 'm5' ||
+            task.effort === 'm30' ||
+            task.effort === 'h2' ||
+            task.effort === 'h4' ||
+            task.effort === 'h8') &&
+          (task.timeOfDay === undefined ||
+            task.timeOfDay === null ||
+            task.timeOfDay === 'early_morning' ||
+            task.timeOfDay === 'morning' ||
+            task.timeOfDay === 'afternoon' ||
+            task.timeOfDay === 'night'),
       ),
   )
 }
@@ -113,6 +126,8 @@ function normalizeBoard(board: PersistedBoard): BoardState {
       ...task,
       completed: task.completed ?? false,
       priority: task.priority ?? null,
+      effort: task.effort ?? null,
+      timeOfDay: task.timeOfDay ?? null,
     })),
   }))
 

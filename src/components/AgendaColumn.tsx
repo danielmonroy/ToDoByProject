@@ -7,7 +7,8 @@ import {
   AGENDA_DROPPABLE_ID,
   getAgendaSortableId,
 } from '../agenda'
-import type { Task, TaskPriority } from '../types'
+import type { Task, TaskEffort, TaskPriority, TaskTimeOfDay } from '../types'
+import { formatBudgetedMinutes, getEffortMinutes } from '../taskEffort'
 import { TaskCard } from './TaskCard'
 
 export type AgendaItem = {
@@ -25,8 +26,19 @@ type AgendaColumnProps = {
     taskId: string,
     priority: TaskPriority | null,
   ) => void
+  onSetTaskEffort: (
+    projectId: string,
+    taskId: string,
+    effort: TaskEffort | null,
+  ) => void
+  onSetTaskTimeOfDay: (
+    projectId: string,
+    taskId: string,
+    timeOfDay: TaskTimeOfDay | null,
+  ) => void
   onToggleTaskComplete: (projectId: string, taskId: string) => void
   onRemoveTask: (taskId: string) => void
+  onSort: () => void
   onClear: () => void
 }
 
@@ -38,13 +50,33 @@ function formatAgendaDate(date: Date): string {
   })
 }
 
+function formatAgendaBudget(items: AgendaItem[]): string | null {
+  if (items.length === 0) return null
+
+  const estimated = items.filter((item) => item.task.effort)
+  if (estimated.length === 0) return 'Sin tiempo presupuestado'
+
+  const totalMinutes = estimated.reduce((total, item) => {
+    const effort = item.task.effort
+    return effort ? total + getEffortMinutes(effort) : total
+  }, 0)
+  const budget = formatBudgetedMinutes(totalMinutes)
+  const missing = items.length - estimated.length
+  if (missing === 0) return budget
+  const missingLabel = missing === 1 ? '1 sin tiempo' : `${missing} sin tiempo`
+  return `${budget} · ${missingLabel}`
+}
+
 export function AgendaColumn({
   items,
   onClose,
   onUpdateTask,
   onSetTaskPriority,
+  onSetTaskEffort,
+  onSetTaskTimeOfDay,
   onToggleTaskComplete,
   onRemoveTask,
+  onSort,
   onClear,
 }: AgendaColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
@@ -52,6 +84,7 @@ export function AgendaColumn({
   })
 
   const sortableIds = items.map((item) => getAgendaSortableId(item.task.id))
+  const budget = formatAgendaBudget(items)
 
   return (
     <section
@@ -65,6 +98,9 @@ export function AgendaColumn({
               Orden del día
             </span>
             <span className="agenda-column__date">{formatAgendaDate(new Date())}</span>
+            {budget ? (
+              <span className="agenda-column__budget">{budget}</span>
+            ) : null}
           </div>
           <span
             className="project-column__count"
@@ -106,6 +142,12 @@ export function AgendaColumn({
               onSetPriority={(priority) =>
                 onSetTaskPriority(item.projectId, item.task.id, priority)
               }
+              onSetEffort={(effort) =>
+                onSetTaskEffort(item.projectId, item.task.id, effort)
+              }
+              onSetTimeOfDay={(timeOfDay) =>
+                onSetTaskTimeOfDay(item.projectId, item.task.id, timeOfDay)
+              }
               onToggleComplete={() =>
                 onToggleTaskComplete(item.projectId, item.task.id)
               }
@@ -125,6 +167,16 @@ export function AgendaColumn({
         <p className="agenda-column__hint">
           Solo se pueden agregar tareas que ya existen en un proyecto.
         </p>
+        <button
+          type="button"
+          className="agenda-column__sort"
+          onClick={onSort}
+          disabled={items.length < 2}
+          aria-label="Ordenar por momento del día, duración y prioridad"
+          title="Momento del día, luego duración de menor a mayor y prioridad"
+        >
+          Ordenar
+        </button>
         <button
           type="button"
           className="agenda-column__clear"

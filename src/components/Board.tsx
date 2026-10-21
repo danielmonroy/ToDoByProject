@@ -17,12 +17,13 @@ import {
   arrayMove,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import type { BoardState, Project, Task, TaskPriority } from '../types'
+import type { BoardState, Project, Task, TaskEffort, TaskPriority, TaskTimeOfDay } from '../types'
 import {
   AGENDA_DROPPABLE_ID,
   countPendingTasks,
   isAgendaTarget,
   parseAgendaSortableId,
+  sortAgendaTasks,
 } from '../agenda'
 import { AgendaColumn, type AgendaItem } from './AgendaColumn'
 import { getColumnSortableId, ProjectColumn } from './ProjectColumn'
@@ -524,7 +525,7 @@ export function Board({
               ...project,
               tasks: [
                 ...project.tasks,
-                { id: crypto.randomUUID(), title, completed: false, priority: null },
+                { id: crypto.randomUUID(), title, completed: false, priority: null, effort: null, timeOfDay: null },
               ],
             }
           : project,
@@ -565,6 +566,46 @@ export function Board({
               ...project,
               tasks: project.tasks.map((task) =>
                 task.id === taskId ? { ...task, priority } : task,
+              ),
+            }
+          : project,
+      ),
+    }))
+  }
+
+  const handleSetTaskEffort = (
+    projectId: string,
+    taskId: string,
+    effort: TaskEffort | null,
+  ) => {
+    updateBoard((current) => ({
+      ...current,
+      projects: current.projects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              tasks: project.tasks.map((task) =>
+                task.id === taskId ? { ...task, effort } : task,
+              ),
+            }
+          : project,
+      ),
+    }))
+  }
+
+  const handleSetTaskTimeOfDay = (
+    projectId: string,
+    taskId: string,
+    timeOfDay: TaskTimeOfDay | null,
+  ) => {
+    updateBoard((current) => ({
+      ...current,
+      projects: current.projects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              tasks: project.tasks.map((task) =>
+                task.id === taskId ? { ...task, timeOfDay } : task,
               ),
             }
           : project,
@@ -650,6 +691,10 @@ export function Board({
     updateBoard((current) => removeTaskFromAgenda(current, taskId))
   }
 
+  const handleSortAgenda = () => {
+    updateBoard((current) => sortAgendaTasks(current))
+  }
+
   const handleClearAgenda = () => {
     updateBoard((current) => {
       if (getAgendaTaskIds(current).length === 0) return current
@@ -677,8 +722,11 @@ export function Board({
             onClose={onHideAgenda}
             onUpdateTask={handleUpdateTask}
             onSetTaskPriority={handleSetTaskPriority}
+            onSetTaskEffort={handleSetTaskEffort}
+            onSetTaskTimeOfDay={handleSetTaskTimeOfDay}
             onToggleTaskComplete={handleToggleTaskComplete}
             onRemoveTask={handleRemoveFromAgenda}
+            onSort={handleSortAgenda}
             onClear={handleClearAgenda}
           />
         ) : null}
@@ -701,6 +749,12 @@ export function Board({
               }
               onSetTaskPriority={(taskId, priority) =>
                 handleSetTaskPriority(project.id, taskId, priority)
+              }
+              onSetTaskEffort={(taskId, effort) =>
+                handleSetTaskEffort(project.id, taskId, effort)
+              }
+              onSetTaskTimeOfDay={(taskId, timeOfDay) =>
+                handleSetTaskTimeOfDay(project.id, taskId, timeOfDay)
               }
               onToggleTaskComplete={(taskId) =>
                 handleToggleTaskComplete(project.id, taskId)
