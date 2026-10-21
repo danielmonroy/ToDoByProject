@@ -1,0 +1,18 @@
+[Unit]
+Description=Mapa mental de proyectos y tareas
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/kanban
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/kanban/.env
+ExecStart=/usr/bin/node server/index.ts
+Restart=on-failure
+RestartSec=5
+User=kanban
+Group=kanban
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

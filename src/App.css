@@ -121,9 +121,29 @@ textarea {
   border-bottom: 1px solid var(--color-border);
 }
 
+.app__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
 .app__title {
   margin: 0;
   font-size: 1.5rem;
+}
+
+.app__sync {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.app__sync--error {
+  color: var(--color-danger);
 }
 
 .app__actions {
@@ -162,6 +182,21 @@ textarea {
 
 .button:hover {
   background: var(--color-primary-hover);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button--danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.button--danger:hover {
+  background: var(--color-danger-bg);
+  filter: brightness(0.97);
 }
 
 .button--secondary {
@@ -894,6 +929,86 @@ textarea {
 .task-card__delete:hover {
   color: var(--color-danger);
   background: var(--color-danger-bg);
+}
+
+.gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.panel,
+.dialog {
+  width: min(100%, 28rem);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 12px 24px var(--color-shadow-soft);
+}
+
+.panel__title,
+.dialog__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.35rem;
+}
+
+.panel__text,
+.dialog__text {
+  margin: 0 0 1rem;
+  color: var(--color-text-muted);
+}
+
+.panel__hint {
+  margin: 0.85rem 0 0;
+  color: var(--color-text-subtle);
+  font-size: 0.8125rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.field__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.field__input {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  background: var(--color-surface);
+}
+
+.field__input:focus {
+  outline: 2px solid var(--color-focus);
+  border-color: var(--color-focus-border);
+}
+
+.form-error {
+  margin: 0 0 0.9rem;
+  color: var(--color-danger);
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--color-shadow);
+}
+
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 @media (max-width: 768px) {
