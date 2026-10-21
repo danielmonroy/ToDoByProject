@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { resolveConfig } from './config.ts'
 import { loadEnvFile } from './env.ts'
 import { createAppHandler } from './app.ts'
-import { assertDataDirWritable, dropRootForDataDir } from './privileges.ts'
+import { assertDataDirWritable } from './privileges.ts'
 
 loadEnvFile()
 
@@ -20,7 +20,6 @@ if (config.isProduction === false && !process.env.APP_PASSWORD) {
 }
 
 try {
-  dropRootForDataDir(config.dataDir)
   assertDataDirWritable(config.dataDir)
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'No se pudo preparar la carpeta de datos.')
