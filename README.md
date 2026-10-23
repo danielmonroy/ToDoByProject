@@ -6,8 +6,8 @@ El archivo de datos es `DATA_DIR/board.json`. Cada vez que se reemplaza, la vers
 
 ## Requisitos
 
-- Node.js 22.18 o posterior (el servidor se ejecuta con el soporte de TypeScript incluido en Node)
-- Para el droplet, Docker o Node 22 más nginx
+- Node.js 22.18 o posterior. En el droplet lo instala `deploy/install.sh` si no está.
+- El proceso corre directo con systemd. No hace falta Docker.
 
 ## Desarrollo
 
@@ -56,79 +56,68 @@ Para dejar el archivo listo y copiarlo al droplet:
 ```bash
 npm run migrate -- --file /ruta/kanban-board.json --out ./data/board.json
 scp ./data/board.json root@IP_DEL_DROPLET:/opt/kanban/data/board.json
+sudo chown kanban:kanban /opt/kanban/data/board.json
+sudo systemctl restart kanban
 ```
 
 Si la app ya está en marcha, también puedes entrar y usar **Importar** con ese JSON. Importar reemplaza el tablero del servidor.
 
-## Desplegar en DigitalOcean
+## Desplegar en el servidor
 
-Estas instrucciones son para un droplet con Ubuntu. No hace falta una base de datos aparte.
+Estas instrucciones son para un droplet con Ubuntu. El programa es un proceso de Node gestionado por systemd. No hace falta una base de datos ni Docker.
 
 ### 1. Preparar el servidor
 
-Entra por SSH y abre los puertos que vayas a usar.
+Entra por SSH e instala git:
 
 ```bash
 sudo apt update
-sudo apt install -y ca-certificates curl
-```
-
-Para una prueba directa por el puerto 3000:
-
-```bash
+sudo apt install -y ca-certificates curl git
 sudo ufw allow OpenSSH
 sudo ufw allow 3000/tcp
 sudo ufw enable
 ```
 
-Cuando pongas nginx y HTTPS, cierra el 3000 público y deja 80 y 443. El puerto 22 de SSH tiene que seguir abierto.
+Cuando más adelante uses nginx y HTTPS, cierra el 3000 público y deja 80 y 443. El puerto 22 de SSH tiene que seguir abierto.
 
-### 2. Con Docker
-
-Instala Docker siguiendo la guía de DigitalOcean para Ubuntu, o el paquete de la distribución si ya lo tienes. En el droplet:
+### 2. Instalar el servicio
 
 ```bash
 git clone https://github.com/danielmonroy/ToDoByProject /opt/kanban
 cd /opt/kanban
-cp .env.example .env
+sudo bash deploy/install.sh
 ```
 
-Edita `.env` y cambia `APP_PASSWORD` y `SESSION_SECRET`. Puedes generar el secreto con:
+La primera vez el script crea `/opt/kanban/.env` y se detiene. Edita ese archivo y cambia `APP_PASSWORD` y `SESSION_SECRET`. Puedes generar el secreto con:
 
 ```bash
 openssl rand -base64 32
 ```
 
-Arranca:
+Vuelve a lanzar la instalación:
 
 ```bash
-docker compose up -d --build
+sudo bash deploy/install.sh
 ```
 
-La app queda en `http://IP_DEL_DROPLET:3000`. Los datos persisten en `/opt/kanban/data` aunque recrees el contenedor. El proceso dentro del contenedor baja a un usuario sin privilegios de root después de ajustar los permisos de esa carpeta.
+Eso instala Node.js 22 en `/opt/nodejs` si el sistema no tiene una versión suficiente, compila la app con el usuario `kanban` y la deja arrancada. Queda en `http://IP_DEL_DROPLET:3000`. Los datos persisten en `/opt/kanban/data`.
 
-Para actualizar:
+Para ver si está corriendo y qué escribe:
 
 ```bash
-git pull
-docker compose up -d --build
+sudo systemctl status kanban
+journalctl -u kanban -f
 ```
 
-### 3. Con Node y systemd
+### 3. Actualizar
 
-Instala Node.js 22 y clona el repo en `/opt/kanban`. Crea el usuario, compila y copia la unidad:
+En el servidor, dentro de `/opt/kanban`:
 
 ```bash
-sudo useradd --system --create-home --home-dir /opt/kanban kanban || true
-sudo chown -R kanban:kanban /opt/kanban
-sudo -u kanban npm ci
-sudo -u kanban npm run build
-sudo cp deploy/kanban.service /etc/systemd/system/kanban.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now kanban
+sudo bash deploy/update.sh
 ```
 
-`/opt/kanban/.env` tiene que existir antes de arrancar, con `NODE_ENV` ya definido por la unidad. Revisa el estado con `sudo systemctl status kanban`.
+Baja el código nuevo, vuelve a compilar y reinicia el proceso. La carpeta `data` no se toca.
 
 ### 4. HTTPS con nginx
 
@@ -147,9 +136,10 @@ sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d tablero.ejemplo.com
 ```
 
-En `.env` pon `TRUST_PROXY=true`. Si el sitio se usa siempre por HTTPS, puedes poner también `COOKIE_SECURE=true`. En `docker-compose.yml` cambia el puerto a `127.0.0.1:3000:3000` para que solo nginx llegue a la app, y vuelve a crear el contenedor.
+En `/opt/kanban/.env` pon `HOST=127.0.0.1` y `TRUST_PROXY=true`, y si el sitio se usa siempre por HTTPS, `COOKIE_SECURE=true`. Reinicia la app y cierra el puerto directo:
 
 ```bash
+sudo systemctl restart kanban
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 sudo ufw delete allow 3000/tcp
@@ -162,7 +152,7 @@ sudo ufw delete allow 3000/tcp
 | `APP_PASSWORD` | Contraseña de entrada. Obligatoria en producción. |
 | `SESSION_SECRET` | Secreto para firmar la cookie. Obligatorio en producción, 16 caracteres o más. |
 | `DATA_DIR` | Carpeta de `board.json`. Por defecto `./data`. |
-| `HOST` | Interfaz de escucha. En el servidor usa `0.0.0.0`. |
+| `HOST` | Interfaz de escucha. `0.0.0.0` para abrir el puerto. `127.0.0.1` cuando nginx está delante. |
 | `PORT` | Puerto. Por defecto `3000`. |
 | `TRUST_PROXY` | `true` solo detrás de nginx, para la IP real y la cookie segura. |
 | `COOKIE_SECURE` | `true`, `false` o vacío. Vacío la marca `Secure` solo si la petición llega como HTTPS. |
