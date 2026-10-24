@@ -172,8 +172,8 @@ export function AgendaColumn({
           className="agenda-column__sort"
           onClick={onSort}
           disabled={items.length < 2}
-          aria-label="Ordenar por momento del día, duración y prioridad"
-          title="Momento del día, luego duración de menor a mayor y prioridad"
+          aria-label="Ordenar por momento del día, prioridad y duración"
+          title="Momento del día, luego prioridad y duración de menor a mayor"
         >
           Ordenar
         </button>

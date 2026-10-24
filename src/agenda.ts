@@ -66,11 +66,11 @@ export function compareAgendaTasks(left: Task, right: Task): number {
     rank(right.timeOfDay, TIME_OF_DAY_ORDER)
   if (byTimeOfDay !== 0) return byTimeOfDay
 
-  const byEffort =
-    rank(left.effort, EFFORT_ORDER) - rank(right.effort, EFFORT_ORDER)
-  if (byEffort !== 0) return byEffort
+  const byPriority =
+    rank(left.priority, PRIORITY_ORDER) - rank(right.priority, PRIORITY_ORDER)
+  if (byPriority !== 0) return byPriority
 
-  return rank(left.priority, PRIORITY_ORDER) - rank(right.priority, PRIORITY_ORDER)
+  return rank(left.effort, EFFORT_ORDER) - rank(right.effort, EFFORT_ORDER)
 }
 
 export function sortAgendaTasks(board: BoardState): BoardState {
