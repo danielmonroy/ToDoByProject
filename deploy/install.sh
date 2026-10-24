@@ -12,7 +12,7 @@ fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-APP_USER="kanban"
+APP_USER="daniel"
 NODE_PREFIX="/opt/nodejs"
 
 node_is_new_enough() {

@@ -11,8 +11,8 @@ EnvironmentFile=/opt/kanban/.env
 ExecStart=/usr/bin/node server/index.ts
 Restart=on-failure
 RestartSec=5
-User=kanban
-Group=kanban
+User=daniel
+Group=daniel
 NoNewPrivileges=true
 
 [Install]

@@ -56,7 +56,7 @@ Para dejar el archivo listo y copiarlo al droplet:
 ```bash
 npm run migrate -- --file /ruta/kanban-board.json --out ./data/board.json
 scp ./data/board.json root@IP_DEL_DROPLET:/opt/kanban/data/board.json
-sudo chown kanban:kanban /opt/kanban/data/board.json
+sudo chown daniel:daniel /opt/kanban/data/board.json
 sudo systemctl restart kanban
 ```
 
@@ -100,7 +100,7 @@ Vuelve a lanzar la instalación:
 sudo bash deploy/install.sh
 ```
 
-Eso instala Node.js 22 en `/opt/nodejs` si el sistema no tiene una versión suficiente, compila la app con el usuario `kanban` y la deja arrancada. Queda en `http://IP_DEL_DROPLET:3000`. Los datos persisten en `/opt/kanban/data`.
+Eso instala Node.js 22 en `/opt/nodejs` si el sistema no tiene una versión suficiente, compila la app con el usuario `daniel` y la deja arrancada. Queda en `http://IP_DEL_DROPLET:3000`. Los datos persisten en `/opt/kanban/data`.
 
 Para ver si está corriendo y qué escribe:
 

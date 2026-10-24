@@ -24,10 +24,15 @@ if [[ ! -x "$NODE_BIN" || ! -x "$NPM_BIN" ]]; then
   exit 1
 fi
 
+APP_USER="daniel"
+
 git pull
-chown -R kanban:kanban "$ROOT"
+chown -R "$APP_USER:$APP_USER" "$ROOT"
 chmod 600 "$ROOT/.env"
-sudo -u kanban env PATH="$(dirname "$NODE_BIN"):/usr/bin:/bin" "$NPM_BIN" ci
-sudo -u kanban env PATH="$(dirname "$NODE_BIN"):/usr/bin:/bin" "$NPM_BIN" run build
+sudo -u "$APP_USER" env PATH="$(dirname "$NODE_BIN"):/usr/bin:/bin" "$NPM_BIN" ci
+sudo -u "$APP_USER" env PATH="$(dirname "$NODE_BIN"):/usr/bin:/bin" "$NPM_BIN" run build
+sed -i "s|^User=.*|User=${APP_USER}|" /etc/systemd/system/kanban.service
+sed -i "s|^Group=.*|Group=${APP_USER}|" /etc/systemd/system/kanban.service
+systemctl daemon-reload
 systemctl restart kanban
 systemctl --no-pager --full status kanban
