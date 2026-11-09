@@ -24,3 +24,5 @@ export type BoardState = {
   projects: Project[]
   agendaTaskIds: string[]
 }
+
+export type BoardView = 'board' | 'focus'

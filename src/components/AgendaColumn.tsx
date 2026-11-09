@@ -5,10 +5,10 @@ import {
 } from '@dnd-kit/sortable'
 import {
   AGENDA_DROPPABLE_ID,
+  formatAgendaBudget,
   getAgendaSortableId,
 } from '../agenda'
 import type { Task, TaskEffort, TaskPriority, TaskTimeOfDay } from '../types'
-import { formatBudgetedMinutes, getEffortMinutes } from '../taskEffort'
 import { TaskCard } from './TaskCard'
 
 export type AgendaItem = {
@@ -50,23 +50,6 @@ function formatAgendaDate(date: Date): string {
   })
 }
 
-function formatAgendaBudget(items: AgendaItem[]): string | null {
-  if (items.length === 0) return null
-
-  const estimated = items.filter((item) => item.task.effort)
-  if (estimated.length === 0) return 'Sin tiempo presupuestado'
-
-  const totalMinutes = estimated.reduce((total, item) => {
-    const effort = item.task.effort
-    return effort ? total + getEffortMinutes(effort) : total
-  }, 0)
-  const budget = formatBudgetedMinutes(totalMinutes)
-  const missing = items.length - estimated.length
-  if (missing === 0) return budget
-  const missingLabel = missing === 1 ? '1 sin tiempo' : `${missing} sin tiempo`
-  return `${budget} · ${missingLabel}`
-}
-
 export function AgendaColumn({
   items,
   onClose,
@@ -84,7 +67,7 @@ export function AgendaColumn({
   })
 
   const sortableIds = items.map((item) => getAgendaSortableId(item.task.id))
-  const budget = formatAgendaBudget(items)
+  const budget = formatAgendaBudget(items.map((item) => item.task.effort))
 
   return (
     <section

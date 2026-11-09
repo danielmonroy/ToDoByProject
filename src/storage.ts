@@ -1,9 +1,10 @@
 import { boardFingerprint, parseBoard } from '../shared/board'
-import type { BoardState } from './types'
+import type { BoardState, BoardView } from './types'
 
 const STORAGE_KEY = 'kanban-board'
 const THEME_KEY = 'kanban-theme'
 const AGENDA_VISIBLE_KEY = 'kanban-agenda-visible'
+const VIEW_KEY = 'kanban-view'
 const MIGRATE_DISMISS_KEY = 'kanban-local-migrate-dismissed'
 const EXPORT_FILENAME = 'kanban-board.json'
 
@@ -119,5 +120,21 @@ export function saveAgendaVisible(visible: boolean): void {
     localStorage.setItem(AGENDA_VISIBLE_KEY, String(visible))
   } catch {
     // Visibility is optional; the board still works without it.
+  }
+}
+
+export function loadBoardView(): BoardView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'focus' ? 'focus' : 'board'
+  } catch {
+    return 'board'
+  }
+}
+
+export function saveBoardView(view: BoardView): void {
+  try {
+    localStorage.setItem(VIEW_KEY, view)
+  } catch {
+    // The chosen view is optional; the board still opens.
   }
 }

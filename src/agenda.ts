@@ -1,3 +1,4 @@
+import { formatBudgetedMinutes, getEffortMinutes } from './taskEffort'
 import type { BoardState, Task, TaskEffort, TaskPriority, TaskTimeOfDay } from './types'
 
 export const AGENDA_DROPPABLE_ID = 'agenda'
@@ -71,6 +72,20 @@ export function compareAgendaTasks(left: Task, right: Task): number {
   if (byPriority !== 0) return byPriority
 
   return rank(left.effort, EFFORT_ORDER) - rank(right.effort, EFFORT_ORDER)
+}
+
+export function formatAgendaBudget(efforts: Array<TaskEffort | null>): string | null {
+  if (efforts.length === 0) return null
+
+  const estimated = efforts.filter((effort): effort is TaskEffort => effort !== null)
+  if (estimated.length === 0) return 'Sin tiempo presupuestado'
+
+  const totalMinutes = estimated.reduce((total, effort) => total + getEffortMinutes(effort), 0)
+  const budget = formatBudgetedMinutes(totalMinutes)
+  const missing = efforts.length - estimated.length
+  if (missing === 0) return budget
+  const missingLabel = missing === 1 ? '1 sin tiempo' : `${missing} sin tiempo`
+  return `${budget} · ${missingLabel}`
 }
 
 export function sortAgendaTasks(board: BoardState): BoardState {

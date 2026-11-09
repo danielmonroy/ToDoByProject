@@ -17,7 +17,7 @@ import {
   arrayMove,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import type { BoardState, Project, Task, TaskEffort, TaskPriority, TaskTimeOfDay } from '../types'
+import type { BoardState, BoardView, Project, Task, TaskEffort, TaskPriority, TaskTimeOfDay } from '../types'
 import {
   AGENDA_DROPPABLE_ID,
   countPendingTasks,
@@ -26,10 +26,13 @@ import {
   sortAgendaTasks,
 } from '../agenda'
 import { AgendaColumn, type AgendaItem } from './AgendaColumn'
+import type { NewAgendaTask } from './AddTaskDialog'
+import { FocusView } from './FocusView'
 import { getColumnSortableId, ProjectColumn } from './ProjectColumn'
 
 type BoardProps = {
   board: BoardState
+  view: BoardView
   showCompleted: boolean
   showAgenda: boolean
   onChange: (board: BoardState) => void
@@ -250,6 +253,7 @@ const collisionDetection: CollisionDetection = (args) => {
 
 export function Board({
   board,
+  view,
   showCompleted,
   showAgenda,
   onChange,
@@ -258,6 +262,7 @@ export function Board({
 }: BoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeProject, setActiveProject] = useState<Project | null>(null)
+  const [focusProjectId, setFocusProjectId] = useState<string | null>(null)
   const boardRef = useRef(board)
   const activeDragTypeRef = useRef<DragType | null>(null)
   const undoStackRef = useRef<DeletedTaskUndo[]>([])
@@ -533,6 +538,29 @@ export function Board({
     }))
   }
 
+  const handleCreateAgendaTask = ({ projectId, title, priority, effort, timeOfDay }: NewAgendaTask) => {
+    const taskId = crypto.randomUUID()
+    updateBoard((current) => {
+      if (!current.projects.some((project) => project.id === projectId)) return current
+
+      const withTask: BoardState = {
+        ...current,
+        projects: current.projects.map((project) =>
+          project.id === projectId
+            ? {
+                ...project,
+                tasks: [
+                  ...project.tasks,
+                  { id: taskId, title, completed: false, priority, effort, timeOfDay },
+                ],
+              }
+            : project,
+        ),
+      }
+      return addTaskToAgenda(withTask, taskId)
+    })
+  }
+
   const handleUpdateTask = (
     projectId: string,
     taskId: string,
@@ -715,6 +743,23 @@ export function Board({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
+      {view === 'focus' ? (
+        <FocusView
+          items={agendaItems}
+          projects={board.projects}
+          onUpdateTask={handleUpdateTask}
+          onSetTaskPriority={handleSetTaskPriority}
+          onSetTaskEffort={handleSetTaskEffort}
+          onSetTaskTimeOfDay={handleSetTaskTimeOfDay}
+          onToggleTaskComplete={handleToggleTaskComplete}
+          onRemoveTask={handleRemoveFromAgenda}
+          onSort={handleSortAgenda}
+          onClear={handleClearAgenda}
+          onCreateTask={handleCreateAgendaTask}
+          initialProjectId={focusProjectId}
+          onRememberProject={setFocusProjectId}
+        />
+      ) : (
       <div className="board">
         {showAgenda ? (
           <AgendaColumn
@@ -773,6 +818,7 @@ export function Board({
           + Nuevo proyecto
         </button>
       </div>
+      )}
 
       <DragOverlay>
         {activeTask ? (

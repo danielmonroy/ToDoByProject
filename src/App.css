@@ -124,8 +124,50 @@ textarea {
 .app__heading {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  align-items: flex-start;
+  gap: 0.55rem;
   min-width: 0;
+}
+
+.view-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border-radius: 8px;
+  background: var(--color-button-secondary-bg);
+}
+
+.view-switch__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  color: var(--color-button-secondary-text);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.view-switch__button:hover {
+  background: var(--color-button-secondary-hover);
+}
+
+.view-switch__button--active {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.view-switch__button--active:hover {
+  background: var(--color-primary-hover);
+}
+
+.view-switch__button--active .button__count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
 }
 
 .app__title {
@@ -157,6 +199,10 @@ textarea {
 .app__main {
   flex: 1;
   overflow: hidden;
+}
+
+.app__main--focus {
+  overflow: auto;
 }
 
 .button {
@@ -634,6 +680,7 @@ textarea {
 }
 
 .task-card__priority {
+  display: inline-flex;
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
@@ -990,6 +1037,124 @@ textarea {
   border-color: var(--color-focus-border);
 }
 
+.dialog .field__input,
+.field__input--area {
+  width: 100%;
+}
+
+.field__input--area {
+  min-height: 4.5rem;
+  resize: vertical;
+  line-height: 1.4;
+  font-family: inherit;
+}
+
+select.field__input {
+  appearance: auto;
+}
+
+.dialog--task {
+  width: min(100%, 32rem);
+}
+
+.task-meta-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.task-meta-fields__item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  background: var(--color-surface-muted);
+  cursor: pointer;
+  text-align: left;
+}
+
+.task-meta-fields__item:hover {
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+
+.task-meta-fields__item:focus-visible {
+  outline: 2px solid var(--color-focus);
+  border-color: var(--color-focus-border);
+}
+
+.task-meta-fields__name {
+  width: 6.25rem;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.task-meta-fields__value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.focus {
+  width: min(100%, 42rem);
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.focus__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.focus__title {
+  margin: 0;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+}
+
+.focus__meta {
+  margin: 0.2rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.focus__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.focus .task-card {
+  padding: 0.7rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.focus__empty {
+  margin: 0;
+  padding: 2.5rem 1rem;
+  border: 1px dashed var(--color-border-dashed);
+  border-radius: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.focus__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .form-error {
   margin: 0 0 0.9rem;
   color: var(--color-danger);
@@ -1013,6 +1178,10 @@ textarea {
 
 @media (max-width: 768px) {
   .app__header {
+    flex-direction: column;
+  }
+
+  .focus__header {
     flex-direction: column;
   }
 

@@ -13,14 +13,16 @@ import {
   importBoardFile,
   isLocalMigrationDismissed,
   loadAgendaVisible,
+  loadBoardView,
   loadLocalBoard,
   loadTheme,
   saveAgendaVisible,
+  saveBoardView,
   saveTheme,
   type Theme,
 } from './storage'
 import { useServerSync } from './useServerSync'
-import type { BoardState } from './types'
+import type { BoardState, BoardView } from './types'
 import './App.css'
 
 type Phase = 'checking' | 'login' | 'ready'
@@ -101,6 +103,7 @@ function BoardScreen({ onLogout }: { onLogout: () => void }) {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [showCompleted, setShowCompleted] = useState(false)
   const [showAgenda, setShowAgenda] = useState(() => loadAgendaVisible())
+  const [view, setView] = useState<BoardView>(() => loadBoardView())
   const [theme, setTheme] = useState<Theme>(() => loadTheme())
   const [localBoard, setLocalBoard] = useState<BoardState | null>(null)
   const [migrateOpen, setMigrateOpen] = useState(false)
@@ -184,6 +187,10 @@ function BoardScreen({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     saveAgendaVisible(showAgenda)
   }, [showAgenda])
+
+  useEffect(() => {
+    saveBoardView(view)
+  }, [view])
 
   useEffect(() => {
     const onLeave = (event: BeforeUnloadEvent) => {
@@ -311,6 +318,25 @@ function BoardScreen({ onLogout }: { onLogout: () => void }) {
       <header className="app__header">
         <div className="app__heading">
           <h1 className="app__title">Mapa mental de proyectos y tareas</h1>
+          <div className="view-switch" role="group" aria-label="Vista">
+            <button
+              type="button"
+              className={`view-switch__button ${view === 'board' ? 'view-switch__button--active' : ''}`}
+              aria-pressed={view === 'board'}
+              onClick={() => setView('board')}
+            >
+              Tablero
+            </button>
+            <button
+              type="button"
+              className={`view-switch__button ${view === 'focus' ? 'view-switch__button--active' : ''}`}
+              aria-pressed={view === 'focus'}
+              onClick={() => setView('focus')}
+            >
+              Enfoque
+              {pendingAgendaCount > 0 ? <span className="button__count">{pendingAgendaCount}</span> : null}
+            </button>
+          </div>
           {syncLabel ? (
             <p className={`app__sync ${sync === 'error' ? 'app__sync--error' : ''}`} aria-live="polite">
               {syncLabel}
@@ -344,6 +370,7 @@ function BoardScreen({ onLogout }: { onLogout: () => void }) {
             </svg>
             Oscuro
           </button>
+          {view === 'board' ? (
           <button
             type="button"
             className={`button button--secondary ${showCompleted ? 'button--active' : ''}`}
@@ -351,6 +378,8 @@ function BoardScreen({ onLogout }: { onLogout: () => void }) {
           >
             Completadas
           </button>
+          ) : null}
+          {view === 'board' ? (
           <button
             type="button"
             className={`button button--secondary ${showAgenda ? 'button--active' : ''}`}
@@ -373,6 +402,7 @@ function BoardScreen({ onLogout }: { onLogout: () => void }) {
             Orden del día
             {pendingAgendaCount > 0 ? <span className="button__count">{pendingAgendaCount}</span> : null}
           </button>
+          ) : null}
           {localBoard && !migrateOpen ? (
             <button className="button button--secondary" type="button" onClick={() => setMigrateOpen(true)}>
               Subir copia local
@@ -397,9 +427,10 @@ function BoardScreen({ onLogout }: { onLogout: () => void }) {
         </div>
       </header>
 
-      <main className="app__main">
+      <main className={`app__main ${view === 'focus' ? 'app__main--focus' : ''}`}>
         <Board
           board={board}
+          view={view}
           showCompleted={showCompleted}
           showAgenda={showAgenda}
           onChange={setBoard}
