@@ -538,7 +538,14 @@ export function Board({
     }))
   }
 
-  const handleCreateAgendaTask = ({ projectId, title, priority, effort, timeOfDay }: NewAgendaTask) => {
+  const handleCreateAgendaTask = ({
+    projectId,
+    title,
+    priority,
+    effort,
+    timeOfDay,
+    addToAgenda,
+  }: NewAgendaTask) => {
     const taskId = crypto.randomUUID()
     updateBoard((current) => {
       if (!current.projects.some((project) => project.id === projectId)) return current
@@ -557,7 +564,7 @@ export function Board({
             : project,
         ),
       }
-      return addTaskToAgenda(withTask, taskId)
+      return addToAgenda ? addTaskToAgenda(withTask, taskId) : withTask
     })
   }
 

@@ -1135,6 +1135,59 @@ select.field__input {
   gap: 0.65rem;
 }
 
+.focus__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.2rem 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.focus__divider::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.focus__divider--early_morning {
+  color: #f59e0b;
+}
+
+.focus__divider--morning {
+  color: #eab308;
+}
+
+.focus__divider--afternoon {
+  color: #fb923c;
+}
+
+.focus__divider--night {
+  color: #818cf8;
+}
+
+.focus__divider--none {
+  color: var(--color-text-subtle);
+}
+
+.field--check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.field--check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+}
+
 .focus .task-card {
   padding: 0.7rem 0.75rem;
   font-size: 0.95rem;

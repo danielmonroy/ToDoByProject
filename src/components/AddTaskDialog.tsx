@@ -9,6 +9,7 @@ export type NewAgendaTask = {
   priority: TaskPriority | null
   effort: TaskEffort | null
   timeOfDay: TaskTimeOfDay | null
+  addToAgenda: boolean
 }
 
 type AddTaskDialogProps = {
@@ -36,6 +37,7 @@ export function AddTaskDialog({
   const [priority, setPriority] = useState<TaskPriority | null>(null)
   const [effort, setEffort] = useState<TaskEffort | null>(null)
   const [timeOfDay, setTimeOfDay] = useState<TaskTimeOfDay | null>(null)
+  const [addToAgenda, setAddToAgenda] = useState(true)
 
   useEffect(() => {
     titleRef.current?.focus()
@@ -60,6 +62,7 @@ export function AddTaskDialog({
       priority,
       effort,
       timeOfDay,
+      addToAgenda,
     })
   }
 
@@ -99,7 +102,9 @@ export function AddTaskDialog({
             }}
           >
             <p className="dialog__text">
-              Se agrega al proyecto que elijas y al orden del día.
+              {addToAgenda
+                ? 'Se agrega al proyecto que elijas y al orden del día.'
+                : 'Se agrega solo al proyecto que elijas.'}
             </p>
             <label className="field">
               <span className="field__label">Tarea</span>
@@ -141,6 +146,14 @@ export function AddTaskDialog({
               onSetEffort={setEffort}
               onSetTimeOfDay={setTimeOfDay}
             />
+            <label className="field field--check">
+              <input
+                type="checkbox"
+                checked={addToAgenda}
+                onChange={(event) => setAddToAgenda(event.target.checked)}
+              />
+              <span>Agregar al orden del día</span>
+            </label>
             <div className="dialog__actions">
               <button className="button" type="submit" disabled={!canSubmit}>
                 Agregar

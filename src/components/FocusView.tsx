@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { formatAgendaBudget, getAgendaSortableId } from '../agenda'
+import { getTimeOfDayLabel } from '../taskTimeOfDay'
 import type { Project, TaskEffort, TaskPriority, TaskTimeOfDay } from '../types'
 import { AddTaskDialog, type NewAgendaTask } from './AddTaskDialog'
 import type { AgendaItem } from './AgendaColumn'
@@ -69,23 +70,37 @@ export function FocusView({
       ) : (
         <div className="focus__list">
           <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-            {items.map((item) => (
-              <TaskCard
-                key={item.task.id}
-                task={item.task}
-                sortableId={getAgendaSortableId(item.task.id)}
-                dragType="agenda-task"
-                projectName={item.projectName}
-                allowDragWhenCompleted
-                deleteLabel="Quitar del orden del día"
-                onUpdate={(title) => onUpdateTask(item.projectId, item.task.id, title)}
-                onSetPriority={(priority) => onSetTaskPriority(item.projectId, item.task.id, priority)}
-                onSetEffort={(effort) => onSetTaskEffort(item.projectId, item.task.id, effort)}
-                onSetTimeOfDay={(timeOfDay) => onSetTaskTimeOfDay(item.projectId, item.task.id, timeOfDay)}
-                onToggleComplete={() => onToggleTaskComplete(item.projectId, item.task.id)}
-                onDelete={() => onRemoveTask(item.task.id)}
-              />
-            ))}
+            {items.map((item, index) => {
+              const previous = items[index - 1]
+              const timeOfDay = item.task.timeOfDay
+              const showDivider = previous !== undefined && previous.task.timeOfDay !== timeOfDay
+              return (
+                <Fragment key={item.task.id}>
+                  {showDivider ? (
+                    <div
+                      className={`focus__divider focus__divider--${timeOfDay ?? 'none'}`}
+                      role="separator"
+                    >
+                      {getTimeOfDayLabel(timeOfDay)}
+                    </div>
+                  ) : null}
+                  <TaskCard
+                    task={item.task}
+                    sortableId={getAgendaSortableId(item.task.id)}
+                    dragType="agenda-task"
+                    projectName={item.projectName}
+                    allowDragWhenCompleted
+                    deleteLabel="Quitar del orden del día"
+                    onUpdate={(title) => onUpdateTask(item.projectId, item.task.id, title)}
+                    onSetPriority={(priority) => onSetTaskPriority(item.projectId, item.task.id, priority)}
+                    onSetEffort={(effort) => onSetTaskEffort(item.projectId, item.task.id, effort)}
+                    onSetTimeOfDay={(timeOfDay) => onSetTaskTimeOfDay(item.projectId, item.task.id, timeOfDay)}
+                    onToggleComplete={() => onToggleTaskComplete(item.projectId, item.task.id)}
+                    onDelete={() => onRemoveTask(item.task.id)}
+                  />
+                </Fragment>
+              )
+            })}
           </SortableContext>
         </div>
       )}
@@ -104,7 +119,12 @@ export function FocusView({
           <button
             type="button"
             className="button button--secondary"
-            onClick={onClear}
+            onClick={() => {
+              const confirmed = window.confirm(
+                '¿Quitar todas las tareas del orden del día? Seguirán en sus proyectos.',
+              )
+              if (confirmed) onClear()
+            }}
             aria-label="Quitar todas las tareas del orden del día"
           >
             Quitar todas
