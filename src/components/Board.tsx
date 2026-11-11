@@ -564,7 +564,8 @@ export function Board({
             : project,
         ),
       }
-      return addToAgenda ? addTaskToAgenda(withTask, taskId) : withTask
+      const next = addToAgenda ? addTaskToAgenda(withTask, taskId) : withTask
+      return sortAgendaTasks(next)
     })
   }
 
